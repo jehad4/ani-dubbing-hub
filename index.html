@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Netflix Style</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: white; }
+    .movie { display: inline-block; margin: 10px; }
+    img { width: 200px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🔥 Popular Movies</h1>
+  <div id="movies"></div>
+
+  <script>
+    const API_KEY = "YOUR_API_KEY"; // এখানে তোমার TMDB API key বসাও
+    const url = `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        const movies = data.results;
+        const container = document.getElementById('movies');
+        movies.forEach(movie => {
+          const el = document.createElement('div');
+          el.className = 'movie';
+          el.innerHTML = `
+            <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" />
+            <p>${movie.title}</p>
+          `;
+          container.appendChild(el);
+        });
+      });
+  </script>
+</body>
+</html>

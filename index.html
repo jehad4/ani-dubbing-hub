@@ -1,37 +1,260 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Netflix Style</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ani Dubbing Hub</title>
   <style>
-    body { font-family: sans-serif; background: #111; color: white; }
-    .movie { display: inline-block; margin: 10px; }
-    img { width: 200px; border-radius: 10px; }
+    :root {
+      --bg: #000;
+      --text: #fff;
+      --accent: #ff3d3d;
+    }
+    [data-theme="dark"] {
+      --bg: #000;
+      --text: #fff;
+      --accent: #ff3d3d;
+    }
+    [data-theme="light"] {
+      --bg: #f1f1f1;
+      --text: #000;
+      --accent: #007bff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 10px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .player-container {
+      width: 100%;
+      max-width: 960px;
+      background: #111;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      background: black;
+    }
+
+    .controls {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .progress {
+      width: 100%;
+    }
+
+    .progress input {
+      width: 100%;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button, input[type=range] {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .left-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .time {
+      font-size: 14px;
+    }
+
+    .volume {
+      width: 80px;
+    }
+
+    .right-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .theme-toggle {
+      padding: 2px 6px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    a.download-link {
+      text-decoration: none;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #888;
+    }
   </style>
 </head>
-<body>
-  <h1>🔥 Popular Movies</h1>
-  <div id="movies"></div>
+<body data-theme="dark">
+  <h1>Ani Dubbing Hub</h1>
+
+  <div class="player-container">
+    <video id="video" src="1.mp4" preload="metadata"></video>
+
+    <div class="controls">
+      <div class="progress">
+        <input type="range" id="progress" value="0" step="0.1">
+      </div>
+      <div class="buttons">
+        <div class="left-controls">
+          <button id="playPause">▶️</button>
+          <button id="backward">⏪ 10s</button>
+          <button id="forward">10s ⏩</button>
+          <button id="loop">🔁</button>
+          <div class="time" id="time">0:00 / 0:00</div>
+          <input type="range" id="volume" class="volume" min="0" max="1" step="0.01">
+        </div>
+        <div class="right-controls">
+          <a href="1.mp4" download class="download-link" title="Download Video">📥</a>
+          <button id="fullscreen">⛶</button>
+          <button class="theme-toggle" id="toggleTheme">🌙</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>&copy; 2025 ANI DUBBING HUB. All rights reserved.</footer>
 
   <script>
-    const API_KEY = "YOUR_API_KEY"; // এখানে তোমার TMDB API key বসাও
-    const url = `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`;
+    const video = document.getElementById('video');
+    const playPauseBtn = document.getElementById('playPause');
+    const progress = document.getElementById('progress');
+    const time = document.getElementById('time');
+    const volume = document.getElementById('volume');
+    const fullscreenBtn = document.getElementById('fullscreen');
+    const loopBtn = document.getElementById('loop');
+    const backwardBtn = document.getElementById('backward');
+    const forwardBtn = document.getElementById('forward');
+    const toggleTheme = document.getElementById('toggleTheme');
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        const movies = data.results;
-        const container = document.getElementById('movies');
-        movies.forEach(movie => {
-          const el = document.createElement('div');
-          el.className = 'movie';
-          el.innerHTML = `
-            <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" />
-            <p>${movie.title}</p>
-          `;
-          container.appendChild(el);
-        });
-      });
+    let isLooping = false;
+    let theme = "dark";
+
+    // Resume playback
+    const savedTime = localStorage.getItem('videoTime');
+    if (savedTime) video.currentTime = parseFloat(savedTime);
+
+    // Update progress bar and time
+    video.addEventListener('timeupdate', () => {
+      progress.value = video.currentTime;
+      time.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+      localStorage.setItem('videoTime', video.currentTime);
+    });
+
+    video.addEventListener('loadedmetadata', () => {
+      progress.max = video.duration;
+      time.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+    });
+
+    // Play/Pause
+    playPauseBtn.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+        playPauseBtn.textContent = '⏸️';
+      } else {
+        video.pause();
+        playPauseBtn.textContent = '▶️';
+      }
+    });
+
+    // Seek
+    progress.addEventListener('input', () => {
+      video.currentTime = progress.value;
+    });
+
+    // Volume
+    volume.value = video.volume;
+    volume.addEventListener('input', () => {
+      video.volume = volume.value;
+    });
+
+    // Fullscreen
+    fullscreenBtn.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        video.requestFullscreen();
+      }
+    });
+
+    // Loop toggle
+    loopBtn.addEventListener('click', () => {
+      isLooping = !isLooping;
+      video.loop = isLooping;
+      loopBtn.style.color = isLooping ? 'var(--accent)' : '';
+    });
+
+    // Skip buttons
+    backwardBtn.addEventListener('click', () => {
+      video.currentTime = Math.max(0, video.currentTime - 10);
+    });
+
+    forwardBtn.addEventListener('click', () => {
+      video.currentTime = Math.min(video.duration, video.currentTime + 10);
+    });
+
+    // Theme switcher
+    toggleTheme.addEventListener('click', () => {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', theme);
+      toggleTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
+    });
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
   </script>
 </body>
 </html>
